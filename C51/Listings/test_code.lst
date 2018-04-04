@@ -1,0 +1,331 @@
+C51 COMPILER V9.57.0.0   TEST_CODE                                                         04/03/2018 20:59:29 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE TEST_CODE
+OBJECT MODULE PLACED IN .\Objects\test_code.obj
+COMPILER INVOKED BY: D:\Keil\C51\C51\BIN\C51.EXE test_code.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listing
+                    -s\test_code.lst) TABS(2) OBJECT(.\Objects\test_code.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          #include <string.h>
+   3          # define uchar unsigned char
+   4          # define uint unsigned int
+   5          
+   6          unsigned char ReceBuf[84]={0};
+   7          unsigned char message_Buf[1]={0};
+   8          int head = 0;
+   9          int tail = 0;
+  10          int flag = 0;
+  11          int enter_index = 0;
+  12          int message_content_index = 0;
+  13          int message_start_index = 0;
+  14          int hand_result = 0;
+  15          int while_index = 0;
+  16          unsigned char temp = 0;
+  17          unsigned char data_str;
+  18          
+  19          void Uart1Send(uchar c);
+  20          void Uart1Sends(uchar *str);
+  21          void DelaySec(uint sec);
+  22          uint hand(void);
+  23          void clear_rece_buf(void);
+  24          void clear_message_buf(void);
+  25          uint receive_message();
+  26          void send_message(uchar *content);
+  27          uint show_message();
+  28          uint exec_AT_command(uchar *command);
+  29          
+  30          
+  31          void init()
+  32          {
+  33   1          SCON=0X50;
+  34   1          TMOD=0X20;
+  35   1          PCON=0X80;
+  36   1          TH1=0XF3;
+  37   1          TL1=0XF3;
+  38   1          TR1=1;
+  39   1          
+  40   1          SM0=0;
+  41   1          SM1=1;
+  42   1          REN=1;
+  43   1          
+  44   1          ES=1;
+  45   1          EA=1;    
+  46   1      }
+  47          
+  48          void main()
+  49          {       
+  50   1          init();     
+  51   1          DelaySec(3);
+  52   1      
+  53   1          while(1)
+  54   1          {
+C51 COMPILER V9.57.0.0   TEST_CODE                                                         04/03/2018 20:59:29 PAGE 2   
+
+  55   2              while(!exec_AT_command("AT"));
+  56   2              while(!exec_AT_command("AT+CMGF=1"));
+  57   2              while(!exec_AT_command("AT+CPMS=\"SM\""));
+  58   2      
+  59   2              while(!enter_index)
+  60   2              {
+  61   3                  while_index += 1;
+  62   3                  Uart1Sends("AT+CMGR=1");
+  63   3                  Uart1Send(0x0d);
+  64   3                  Uart1Send(0x0a);
+  65   3                  DelaySec(3);    
+  66   3                  while(!receive_message());
+  67   3                  if(while_index == 10)
+  68   3                  {
+  69   4                      enter_index = 1;
+  70   4                  }
+  71   3                  clear_rece_buf();
+  72   3                  clear_message_buf();  
+  73   3              }
+  74   2              if(while_index == 10)
+  75   2              {
+  76   3                  enter_index = 0;
+  77   3                  while_index = 0;
+  78   3                  continue;
+  79   3              }
+  80   2              enter_index = 0;
+  81   2              while(!show_message());
+  82   2              clear_rece_buf();
+  83   2              clear_message_buf();  
+  84   2      
+  85   2              Uart1Sends("over");
+  86   2          }
+  87   1      }
+  88          
+  89          void Usart() interrupt 4
+  90          { 
+  91   1          temp=SBUF;//????????
+  92   1          RI = 0;//????????? 
+  93   1          
+  94   1          ReceBuf[head] = temp;
+  95   1          head++;
+  96   1          if(head>84)
+  97   1          {
+  98   2              head=0;
+  99   2          }
+ 100   1      }
+ 101          
+ 102          void Uart1Send(uchar c)
+ 103          {
+ 104   1          ES = 0;
+ 105   1          SBUF=c;
+ 106   1          while(!TI);//????????(TI=1)??
+ 107   1          TI=0;  
+ 108   1          ES = 1;
+ 109   1      }
+ 110          
+ 111          void Uart1Sends(uchar *str)
+ 112          {
+ 113   1          ES = 0;
+ 114   1          while(*str!='\0')
+ 115   1          {
+ 116   2              SBUF=*str;
+C51 COMPILER V9.57.0.0   TEST_CODE                                                         04/03/2018 20:59:29 PAGE 3   
+
+ 117   2              while(!TI);//????????(TI=1)??
+ 118   2              TI=0;
+ 119   2              str++;
+ 120   2          }
+ 121   1          ES = 1;
+ 122   1      }
+ 123          
+ 124          void DelaySec(uint sec)
+ 125          {
+ 126   1          uint i , j= 0;
+ 127   1      
+ 128   1          for(i=0; i<sec; i++)
+ 129   1          {
+ 130   2              for(j=0; j<62535; j++);
+ 131   2          }        
+ 132   1      }
+ 133          
+ 134          uint hand()
+ 135          {
+ 136   1          while(1)
+ 137   1          {
+ 138   2              if(head != tail)
+ 139   2              {
+ 140   3                  data_str = ReceBuf[tail];
+ 141   3                  tail++;
+ 142   3                  if(tail>84)
+ 143   3                  {
+ 144   4                      tail = 0;
+ 145   4                  }
+ 146   3                  if(data_str == 'O' && ReceBuf[tail] == 'K')
+ 147   3                  {
+ 148   4                      return 1;
+ 149   4                  }
+ 150   3              }
+ 151   2              else
+ 152   2              {
+ 153   3                  return 0;
+ 154   3              }
+ 155   2          }
+ 156   1      }
+ 157          
+ 158          uint receive_message()
+ 159          {
+ 160   1          while(1)
+ 161   1          {
+ 162   2              if(head != tail)
+ 163   2              {
+ 164   3                  Uart1Sends("[");
+ 165   3                  Uart1Sends(ReceBuf);
+ 166   3                  Uart1Sends("]");
+ 167   3                  Uart1Send(0x0d); 
+ 168   3                  // if(data_str == '+')
+ 169   3                  // {
+ 170   3                  //     // tail += 1;
+ 171   3                  //     // data_str = ReceBuf[tail];
+ 172   3                  //     enter_index++;
+ 173   3                  // }
+ 174   3                  // if(enter_index >= 1)
+ 175   3                  // {
+ 176   3                  //     if(data_str == 0x0a && ReceBuf[tail] == 'O' && ReceBuf[tail + 1] == 'K')
+ 177   3                  //     {
+ 178   3                  //         return 1;
+C51 COMPILER V9.57.0.0   TEST_CODE                                                         04/03/2018 20:59:29 PAGE 4   
+
+ 179   3                  //     }
+ 180   3                  //     message_Buf[message_content_index] = data_str;
+ 181   3                  //     message_content_index++;
+ 182   3                  // }           
+ 183   3              }
+ 184   2              else
+ 185   2              {
+ 186   3                  return 1;
+ 187   3              }
+ 188   2          }    
+ 189   1      }
+ 190          
+ 191          uint show_message()
+ 192          {    
+ 193   1          while(1)
+ 194   1          {
+ 195   2              if(message_content_index != message_start_index)
+ 196   2              {
+ 197   3                  // send_message(message_Buf);
+ 198   3                  Uart1Sends(message_Buf);
+ 199   3                  return 1;
+ 200   3              }
+ 201   2              else
+ 202   2              {
+ 203   3                  return 1;
+ 204   3              }
+ 205   2          }
+ 206   1      }
+ 207          
+ 208          
+ 209          void clear_rece_buf()
+ 210          {
+ 211   1          for(flag=0; flag<84; flag++)
+ 212   1          {
+ 213   2              ReceBuf[flag] = 0;
+ 214   2          }
+ 215   1          head = 0;
+ 216   1          tail = 0;
+ 217   1      }
+ 218          
+ 219          void clear_message_buf()
+ 220          {
+ 221   1          for(flag=0; flag<32; flag++)
+ 222   1          {
+ 223   2              message_Buf[flag] = 0;
+ 224   2          }
+ 225   1          message_start_index = 0;
+ 226   1          message_content_index = 0;
+ 227   1      }
+ 228          
+ 229          void send_message(uchar *content)
+ 230          {
+ 231   1          Uart1Sends("AT");
+ 232   1          Uart1Send(0x0d); 
+ 233   1          Uart1Send(0x0a);  
+ 234   1          DelaySec(2);
+ 235   1          while(!hand());
+ 236   1          clear_rece_buf();
+ 237   1      
+ 238   1          Uart1Sends("AT+CMGF=1");
+ 239   1          Uart1Send(0x0d); 
+ 240   1          Uart1Send(0x0a);  
+C51 COMPILER V9.57.0.0   TEST_CODE                                                         04/03/2018 20:59:29 PAGE 5   
+
+ 241   1          DelaySec(2);
+ 242   1          while(!hand());
+ 243   1          clear_rece_buf();
+ 244   1      
+ 245   1          Uart1Sends("AT+CSMP?");
+ 246   1          Uart1Send(0x0d); 
+ 247   1          Uart1Send(0x0a);  
+ 248   1          DelaySec(2);
+ 249   1          while(!hand());
+ 250   1          clear_rece_buf();
+ 251   1      
+ 252   1          Uart1Sends("AT+CSCS=\"GSM\"");
+ 253   1          Uart1Send(0x0d); 
+ 254   1          Uart1Send(0x0a);  
+ 255   1          DelaySec(2);
+ 256   1          while(!hand());
+ 257   1          clear_rece_buf();
+ 258   1      
+ 259   1          Uart1Sends("AT+CSMP=17,167,0,250");
+ 260   1          Uart1Send(0x0d); 
+ 261   1          Uart1Send(0x0a);  
+ 262   1          DelaySec(2);
+ 263   1          while(!hand());
+ 264   1          clear_rece_buf();
+ 265   1      
+ 266   1          Uart1Sends("AT+CMGS=\"+8618624030589\"");
+ 267   1          Uart1Send(0x0d); 
+ 268   1          Uart1Send(0x0a);  
+ 269   1          DelaySec(2);
+ 270   1          while(!hand());
+ 271   1          clear_rece_buf();
+ 272   1      
+ 273   1          Uart1Sends(content);
+ 274   1          Uart1Send(0x1A); 
+ 275   1          DelaySec(2);
+ 276   1          while(!hand());
+ 277   1          clear_rece_buf();
+ 278   1      
+ 279   1          Uart1Sends("over");
+ 280   1          Uart1Send(0x0d); 
+ 281   1          Uart1Send(0x0a); 
+ 282   1          DelaySec(2);
+ 283   1          while(!hand());
+ 284   1          clear_rece_buf();
+ 285   1      }
+ 286          
+ 287          uint exec_AT_command(uchar *command)
+ 288          {
+ 289   1          Uart1Sends(command);
+ 290   1          Uart1Send(0x0d);
+ 291   1          Uart1Send(0x0a);  
+ 292   1          DelaySec(2);
+ 293   1          hand_result = hand();
+ 294   1          clear_rece_buf(); 
+ 295   1      
+ 296   1          return hand_result;
+ 297   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    756    ----
+   CONSTANT SIZE    =    114    ----
+C51 COMPILER V9.57.0.0   TEST_CODE                                                         04/03/2018 20:59:29 PAGE 6   
+
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =    103       7
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
