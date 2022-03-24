@@ -281,7 +281,7 @@ line level    source
  263   1          while(!hand());
  264   1          clear_rece_buf();
  265   1      
- 266   1          Uart1Sends("AT+CMGS=\"+8618624030589\"");
+ 266   1          Uart1Sends("AT+CMGS=\"+8618888888888\"");
  267   1          Uart1Send(0x0d); 
  268   1          Uart1Send(0x0a);  
  269   1          DelaySec(2);

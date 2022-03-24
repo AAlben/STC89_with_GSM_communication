@@ -186,7 +186,7 @@ void send_message(uchar *content)
         DelaySec(2);
         while(!hand("456"));
 
-        Uart1Sends("AT+CMGS=\"+8618624030589\"");
+        Uart1Sends("AT+CMGS=\"+8618888888888\"");
         Uart1Send(0x0d);              //?????
         Uart1Send(0x0a);  
         DelaySec(2);

@@ -49,7 +49,7 @@ void main()
         //        Uart1Sends("AT+CSMP=17,167,0,240\r");//??????(?????????)
         DelaySec(3);//??3?
         led1 = 1;
-        Uart1Sends("AT+CMGS=\"+8618624030589\"\r");
+        Uart1Sends("AT+CMGS=\"+8618888888888\"\r");
         Uart1Send(0x0a);
         DelaySec(5);//??3?              
         led1 = 0;

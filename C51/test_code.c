@@ -263,7 +263,7 @@ void send_message(uchar *content)
     while(!hand());
     clear_rece_buf();
 
-    Uart1Sends("AT+CMGS=\"+8618624030589\"");
+    Uart1Sends("AT+CMGS=\"+8618888888888\"");
     Uart1Send(0x0d); 
     Uart1Send(0x0a);  
     DelaySec(2);

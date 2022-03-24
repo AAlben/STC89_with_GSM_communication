@@ -3,7 +3,7 @@
 # define uint unsigned int
 # define Rx_data_length 110
 
-uchar Admin_num[11] = "18624030589";
+uchar Admin_num[11] = "18888888888";
 uchar i, j;
 
 bit Response_receive_SMS_flag = 0;
